@@ -1,0 +1,12 @@
+[package]
+name = "wurl-tools"
+version = "0.1.0"
+authors = ["Espen Henriksen <dev@henriksen.is>"]
+
+[dependencies]
+regex = "0.2.10"
+lazy_static = "1.0.0"
+
+[dependencies.clap]
+version = "2.31.2"
+features = ["yaml"]

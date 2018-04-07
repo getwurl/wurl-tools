@@ -1,0 +1,45 @@
+name: wurl-auth
+args:
+    - ping:
+        short: p
+        long: ping
+        help: Send a ping control frame
+        takes_value: true
+        value_name: INSTRUCTION
+        number_of_values: 1
+        multiple: true
+    - pong:
+        long: pong
+        help: Send a pong control frame
+        takes_value: true
+        value_name: INSTRUCTION
+        number_of_values: 1
+        multiple: true
+    - message:
+        short: m
+        long: message
+        help: Send a WebSocket frame
+        takes_value: true
+        value_name: INSTRUCTION
+        number_of_values: 1
+        multiple: true
+    - close:
+        short: c
+        long: close
+        help: Send a close control frame
+        takes_value: true
+        value_name: INSTRUCTION
+        number_of_values: 1
+        multiple: true
+after_help: |
+  INSTRUCTION:
+      An instruction is a command that defines when and what to send. For
+      example, in order to send a custom ping every two seconds, the
+      following instruction may be used:
+
+      send {"type": "PING"} every 2s
+
+      To close a connection after a set time, you can use this instruction
+      with a close frame:
+
+      send 1000 Goodbye! after 15s
