@@ -9,19 +9,18 @@ lazy_static! {
 #[derive(Debug, PartialEq)]
 pub enum Command {
     INTERVAL,
-    DELAY
+    DELAY,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct InstructionParseError {
     reason: String,
-
 }
 
 impl InstructionParseError {
     pub fn new<T: Into<String>>(reason: T) -> InstructionParseError {
         InstructionParseError {
-            reason: reason.into()
+            reason: reason.into(),
         }
     }
 }
@@ -53,18 +52,23 @@ impl FromStr for Instruction {
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         let matches_opt = MESSAGE_RE.captures(input);
         if matches_opt.is_none() {
-            return Err(InstructionParseError::new(format!("Invalid instruction: {}", input)));
+            return Err(InstructionParseError::new(format!(
+                "Invalid instruction: {}",
+                input
+            )));
         }
         let matches = matches_opt.unwrap();
         let unit = &matches["unit"];
         let duration = matches["interval"].parse().unwrap();
 
         Ok(Instruction {
-            message: matches.name("message").map_or(None, |m| Some(String::from(m.as_str()))),
+            message: matches
+                .name("message")
+                .map_or(None, |m| Some(String::from(m.as_str()))),
             command: match matches["command"].to_lowercase().as_ref() {
                 "every" => Command::INTERVAL,
                 "after" => Command::DELAY,
-                _ => unimplemented!()
+                _ => unimplemented!(),
             },
             duration: get_duration(duration, &unit)?,
         })
@@ -78,7 +82,10 @@ fn get_duration(duration: u64, unit: &str) -> Result<Duration, InstructionParseE
         "min" => Ok(Duration::from_secs(duration * 60)),
         "h" => Ok(Duration::from_secs(duration * 60 * 60)),
         "d" => Ok(Duration::from_secs(duration * 60 * 60 * 24)),
-        _ => Err(InstructionParseError::new(format!("{} is not a valid unit", unit)))
+        _ => Err(InstructionParseError::new(format!(
+            "{} is not a valid unit",
+            unit
+        ))),
     }
 }
 

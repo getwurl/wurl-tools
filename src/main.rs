@@ -1,13 +1,13 @@
 #[macro_use]
 extern crate clap;
-extern crate regex;
-extern crate scheduled_thread_pool;
 #[macro_use]
 extern crate lazy_static;
+extern crate regex;
+extern crate scheduled_thread_pool;
 
 mod instruction;
 
-use instruction::{Instruction, Command};
+use instruction::{Command, Instruction};
 use clap::App;
 use scheduled_thread_pool::ScheduledThreadPool;
 use std::thread;
@@ -16,7 +16,7 @@ enum OpCode {
     Ping,
     Pong,
     Message,
-    Close
+    Close,
 }
 
 fn main() {
@@ -78,13 +78,21 @@ fn add_to_pool(instructions: Vec<Instruction>, opcode: OpCode, pool: &ScheduledT
             Command::INTERVAL => {
                 if let Some(message) = instruction.message() {
                     let cloned = message.clone();
-                    pool.execute_at_fixed_rate(*instruction.duration(), *instruction.duration(), move || {
-                        println!("{}{}", prefix, cloned);
-                    });
+                    pool.execute_at_fixed_rate(
+                        *instruction.duration(),
+                        *instruction.duration(),
+                        move || {
+                            println!("{}{}", prefix, cloned);
+                        },
+                    );
                 } else {
-                    pool.execute_at_fixed_rate(*instruction.duration(), *instruction.duration(), move || {
-                        println!("{}", prefix);
-                    });
+                    pool.execute_at_fixed_rate(
+                        *instruction.duration(),
+                        *instruction.duration(),
+                        move || {
+                            println!("{}", prefix);
+                        },
+                    );
                 }
             }
         }
