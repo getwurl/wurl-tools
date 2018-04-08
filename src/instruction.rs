@@ -2,9 +2,8 @@ use std::str::FromStr;
 use std::time::Duration;
 use regex::Regex;
 
-// TODO message is optional
 lazy_static! {
-    static ref MESSAGE_RE: Regex = Regex::new(r"^send (?P<message>.+) (?P<command>every|after) (?P<interval>\d+)(?P<unit>\w)$").expect("Failed to compile instruction regex");
+    static ref MESSAGE_RE: Regex = Regex::new(r"^(send (?P<message>.+) )?(?P<command>every|after) (?P<interval>\d+)(?P<unit>\w)$").expect("Failed to compile instruction regex");
 }
 
 #[derive(Debug, PartialEq)]
@@ -38,18 +37,14 @@ impl FromStr for Instruction {
     type Err = InstructionParseError;
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
-        println!("Parsing {}", input);
         let matches_opt = MESSAGE_RE.captures(input);
         if matches_opt.is_none() {
             return Err(InstructionParseError::new(String::from("No matches found")));
         }
         let matches = matches_opt.unwrap();
-        println!("matches {:?}", matches);
-
-        //Err(InstructionParseError::new("".to_string()))
 
         Ok(Instruction {
-            message: Some(String::from(&matches["message"])),
+            message: matches.name("message").map_or(None, |m| Some(String::from(m.as_str()))),
             command: match matches["command"].to_lowercase().as_ref() {
                 "every" => Command::INTERVAL,
                 "after" => Command::DELAY,
