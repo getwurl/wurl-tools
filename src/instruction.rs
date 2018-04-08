@@ -105,7 +105,6 @@ fn parse_interval(interval: &str) -> Result<u64, InstructionParseError> {
     }
 }
 
-
 fn get_duration(duration: u64, unit: &str) -> Result<Duration, InstructionParseError> {
     match unit {
         "ms" => Ok(Duration::from_millis(duration)),
@@ -203,8 +202,9 @@ mod test {
     #[test]
     fn parse_negative_durations_fails() {
         let result = Instruction::from_str("send {\"type\": \"PING\"} after -2s");
-        let expected =
-            InstructionParseError::new("-2 is not a valid duration. Negative numbers are not supported");
+        let expected = InstructionParseError::new(
+            "-2 is not a valid duration. Negative numbers are not supported",
+        );
         assert_eq!(expected, result.unwrap_err());
     }
 
