@@ -3,7 +3,7 @@ use std::time::Duration;
 use regex::Regex;
 
 lazy_static! {
-    static ref MESSAGE_RE: Regex = Regex::new(r"^(send (?P<message>.+) )?(?P<command>every|after) (?P<interval>\d+)(?P<unit>\w)$").expect("Failed to compile instruction regex");
+    static ref MESSAGE_RE: Regex = Regex::new(r"^(send (?P<message>.+) )?(?P<command>every|after) (?P<interval>\d+)(?P<unit>\w+)$").expect("Failed to compile instruction regex");
 }
 
 #[derive(Debug, PartialEq)]
@@ -56,6 +56,8 @@ impl FromStr for Instruction {
             return Err(InstructionParseError::new(format!("Invalid instruction: {}", input)));
         }
         let matches = matches_opt.unwrap();
+        let unit = &matches["unit"];
+        let duration = matches["interval"].parse().unwrap();
 
         Ok(Instruction {
             message: matches.name("message").map_or(None, |m| Some(String::from(m.as_str()))),
@@ -64,8 +66,19 @@ impl FromStr for Instruction {
                 "after" => Command::DELAY,
                 _ => unimplemented!()
             },
-            duration: Duration::from_secs(matches["interval"].parse().unwrap()),
+            duration: get_duration(duration, &unit)?,
         })
+    }
+}
+
+fn get_duration(duration: u64, unit: &str) -> Result<Duration, InstructionParseError> {
+    match unit {
+        "ms" => Ok(Duration::from_millis(duration)),
+        "s" => Ok(Duration::from_secs(duration)),
+        "min" => Ok(Duration::from_secs(duration * 60)),
+        "h" => Ok(Duration::from_secs(duration * 60 * 60)),
+        "d" => Ok(Duration::from_secs(duration * 60 * 60 * 24)),
+        _ => Err(InstructionParseError::new(format!("{} is not a valid unit", unit)))
     }
 }
 
@@ -104,6 +117,28 @@ mod test {
             message: Some(String::from("{\"type\": \"PING\"}")),
             command: Command::INTERVAL,
             duration: Duration::from_secs(2),
+        };
+        assert_eq!(expected, result.unwrap());
+    }
+
+    #[test]
+    fn parse_interval_in_ms() {
+        let result = Instruction::from_str("send {\"type\": \"PING\"} every 200ms");
+        let expected = Instruction {
+            message: Some(String::from("{\"type\": \"PING\"}")),
+            command: Command::INTERVAL,
+            duration: Duration::from_millis(200),
+        };
+        assert_eq!(expected, result.unwrap());
+    }
+
+    #[test]
+    fn parse_interval_in_min() {
+        let result = Instruction::from_str("send {\"type\": \"PING\"} every 1min");
+        let expected = Instruction {
+            message: Some(String::from("{\"type\": \"PING\"}")),
+            command: Command::INTERVAL,
+            duration: Duration::from_secs(60),
         };
         assert_eq!(expected, result.unwrap());
     }
