@@ -3,7 +3,7 @@ use std::time::Duration;
 use regex::Regex;
 
 lazy_static! {
-    static ref MESSAGE_RE: Regex = Regex::new(r"^(send (?P<message>.+) )?(?P<command>every|after) (?P<interval>\d+)(?P<unit>\w+)$").expect("Failed to compile instruction regex");
+    static ref MESSAGE_RE: Regex = Regex::new(r"^(send (?P<message>.+) )?(?P<command>every|after) (?P<interval>-?\d+(\.\d+)?)(?P<unit>\w+)$").expect("Failed to compile instruction regex");
 }
 
 #[derive(Debug, PartialEq)]
@@ -51,15 +51,17 @@ impl FromStr for Instruction {
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         let matches_opt = MESSAGE_RE.captures(input);
+
         if matches_opt.is_none() {
             return Err(InstructionParseError::new(format!(
                 "Invalid instruction: {}",
                 input
             )));
         }
-        let matches = matches_opt.unwrap();
+
+        let matches = matches_opt.expect("Failed to parse instruction");
         let unit = &matches["unit"];
-        let duration = matches["interval"].parse().unwrap();
+        let duration = parse_interval(&matches["interval"])?;
 
         Ok(Instruction {
             message: matches
@@ -75,13 +77,42 @@ impl FromStr for Instruction {
     }
 }
 
+fn parse_interval(interval: &str) -> Result<u64, InstructionParseError> {
+    let interval = String::from(interval);
+
+    match interval.parse() {
+        Ok(value) => Ok(value),
+        Err(_) => {
+            if interval.starts_with("-") {
+                return Err(InstructionParseError::new(format!(
+                    "{} is not a valid duration. Negative numbers are not supported",
+                    interval
+                )));
+            }
+
+            if interval.contains(".") || interval.contains(",") {
+                return Err(InstructionParseError::new(format!(
+                    "{} is not a valid duration. Decimals are not supported",
+                    interval
+                )));
+            }
+
+            return Err(InstructionParseError::new(format!(
+                "{} is not a valid duration",
+                interval
+            )));
+        }
+    }
+}
+
+
 fn get_duration(duration: u64, unit: &str) -> Result<Duration, InstructionParseError> {
     match unit {
         "ms" => Ok(Duration::from_millis(duration)),
-        "s" => Ok(Duration::from_secs(duration)),
-        "min" => Ok(Duration::from_secs(duration * 60)),
+        "s" | "sec" => Ok(Duration::from_secs(duration)),
+        "m" | "min" => Ok(Duration::from_secs(duration * 60)),
         "h" => Ok(Duration::from_secs(duration * 60 * 60)),
-        "d" => Ok(Duration::from_secs(duration * 60 * 60 * 24)),
+        "d" | "day" | "days" => Ok(Duration::from_secs(duration * 60 * 60 * 24)),
         _ => Err(InstructionParseError::new(format!(
             "{} is not a valid unit",
             unit
@@ -141,7 +172,7 @@ mod test {
 
     #[test]
     fn parse_interval_in_min() {
-        let result = Instruction::from_str("send {\"type\": \"PING\"} every 1min");
+        let result = Instruction::from_str("send {\"type\": \"PING\"} every 1m");
         let expected = Instruction {
             message: Some(String::from("{\"type\": \"PING\"}")),
             command: Command::INTERVAL,
@@ -159,6 +190,22 @@ mod test {
             duration: Duration::from_secs(2),
         };
         assert_eq!(expected, result.unwrap());
+    }
+
+    #[test]
+    fn parse_fractional_durations_fails() {
+        let result = Instruction::from_str("send {\"type\": \"PING\"} after 2.2s");
+        let expected =
+            InstructionParseError::new("2.2 is not a valid duration. Decimals are not supported");
+        assert_eq!(expected, result.unwrap_err());
+    }
+
+    #[test]
+    fn parse_negative_durations_fails() {
+        let result = Instruction::from_str("send {\"type\": \"PING\"} after -2s");
+        let expected =
+            InstructionParseError::new("-2 is not a valid duration. Negative numbers are not supported");
+        assert_eq!(expected, result.unwrap_err());
     }
 
     #[test]

@@ -3,14 +3,16 @@ extern crate clap;
 #[macro_use]
 extern crate lazy_static;
 extern crate regex;
+extern crate rprompt;
 extern crate scheduled_thread_pool;
 
 mod instruction;
 
+use std::process::exit;
 use instruction::{Command, Instruction};
 use clap::App;
 use scheduled_thread_pool::ScheduledThreadPool;
-use std::thread;
+use rprompt::read_reply;
 
 enum OpCode {
     Ping,
@@ -46,8 +48,20 @@ fn main() {
         add_to_pool(instructions, OpCode::Close, &pool);
     }
 
-    // Main thread is done, park it and let thread pool work
-    thread::park();
+    // Pass stdin to stdout
+    // This is to make pipelining possible
+    loop {
+        match read_reply() {
+            Ok(input) => println!("{}", input),
+            Err(error) => match error.kind() {
+                std::io::ErrorKind::UnexpectedEof => {}
+                _ => {
+                    eprintln!("error: {}", error);
+                    exit(1);
+                }
+            },
+        }
+    }
 }
 
 fn get_prefix(opcode: &OpCode) -> String {
