@@ -8,6 +8,10 @@ args:
         value_name: INSTRUCTION
         number_of_values: 1
         multiple: true
+        required_unless_one:
+          - pong
+          - message
+          - close
     - pong:
         long: pong
         help: Send a pong control frame
@@ -15,6 +19,10 @@ args:
         value_name: INSTRUCTION
         number_of_values: 1
         multiple: true
+        required_unless_one:
+          - ping
+          - message
+          - close
     - message:
         short: m
         long: message
@@ -23,6 +31,10 @@ args:
         value_name: INSTRUCTION
         number_of_values: 1
         multiple: true
+        required_unless_one:
+          - ping
+          - pong
+          - close
     - close:
         short: c
         long: close
@@ -31,6 +43,10 @@ args:
         value_name: INSTRUCTION
         number_of_values: 1
         multiple: true
+        required_unless_one:
+          - ping
+          - pong
+          - message
 after_help: |
   INSTRUCTION:
       An instruction is a command that defines when and what to send. For
