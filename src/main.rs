@@ -52,10 +52,10 @@ fn main() {
 
 fn get_prefix(opcode: &OpCode) -> String {
     match opcode {
-        OpCode::Ping => String::from("/ping "),
-        OpCode::Pong => String::from("/pong "),
-        OpCode::Close => String::from("/close "),
-        OpCode::Message => String::new(),
+        &OpCode::Ping => String::from("/ping "),
+        &OpCode::Pong => String::from("/pong "),
+        &OpCode::Close => String::from("/close "),
+        &OpCode::Message => String::new(),
     }
 }
 
@@ -63,8 +63,8 @@ fn add_to_pool(instructions: Vec<Instruction>, opcode: OpCode, pool: &ScheduledT
     for instruction in instructions.iter() {
         let prefix = get_prefix(&opcode);
         match instruction.command() {
-            Command::DELAY => {
-                if let Some(message) = instruction.message() {
+            &Command::DELAY => {
+                if let &Some(ref message) = instruction.message() {
                     let cloned = message.clone();
                     pool.execute_after(*instruction.duration(), move || {
                         println!("{}{}", prefix, cloned);
@@ -75,8 +75,8 @@ fn add_to_pool(instructions: Vec<Instruction>, opcode: OpCode, pool: &ScheduledT
                     });
                 }
             }
-            Command::INTERVAL => {
-                if let Some(message) = instruction.message() {
+            &Command::INTERVAL => {
+                if let &Some(ref message) = instruction.message() {
                     let cloned = message.clone();
                     pool.execute_at_fixed_rate(
                         *instruction.duration(),
