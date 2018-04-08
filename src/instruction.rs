@@ -19,9 +19,9 @@ pub struct InstructionParseError {
 }
 
 impl InstructionParseError {
-    pub fn new(reason: String) -> InstructionParseError {
+    pub fn new<T: Into<String>>(reason: T) -> InstructionParseError {
         InstructionParseError {
-            reason: reason
+            reason: reason.into()
         }
     }
 }
@@ -33,13 +33,27 @@ pub struct Instruction {
     duration: Duration,
 }
 
+impl Instruction {
+    pub fn message(self: &Instruction) -> &Option<String> {
+        &self.message
+    }
+
+    pub fn command(self: &Instruction) -> &Command {
+        &self.command
+    }
+
+    pub fn duration(self: &Instruction) -> &Duration {
+        &self.duration
+    }
+}
+
 impl FromStr for Instruction {
     type Err = InstructionParseError;
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         let matches_opt = MESSAGE_RE.captures(input);
         if matches_opt.is_none() {
-            return Err(InstructionParseError::new(String::from("No matches found")));
+            return Err(InstructionParseError::new(format!("Invalid instruction: {}", input)));
         }
         let matches = matches_opt.unwrap();
 
@@ -59,7 +73,7 @@ impl FromStr for Instruction {
 mod test {
     use std::str::FromStr;
     use std::time::Duration;
-    use instruction::{Command, Instruction, InstructionParseError};
+    use super::{Command, Instruction, InstructionParseError};
 
     #[test]
     fn parse_interval() {
@@ -103,5 +117,12 @@ mod test {
             duration: Duration::from_secs(2),
         };
         assert_eq!(expected, result.unwrap());
+    }
+
+    #[test]
+    fn parse_invalid_messages() {
+        let result = Instruction::from_str("Hello");
+        let expected = InstructionParseError::new(String::from("Invalid instruction: Hello"));
+        assert_eq!(expected, result.unwrap_err());
     }
 }

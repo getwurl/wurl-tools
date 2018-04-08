@@ -1,72 +1,78 @@
 #[macro_use]
 extern crate clap;
 extern crate regex;
+extern crate scheduled_thread_pool;
 #[macro_use]
 extern crate lazy_static;
 
 mod instruction;
 
-use std::process::exit;
-use std::io::{stdin, Read};
+use instruction::{Instruction, Command};
 use clap::App;
+use scheduled_thread_pool::ScheduledThreadPool;
+use std::time::Duration;
+use std::thread::{self, sleep, JoinHandle};
+
+enum OpCode {
+    Ping,
+    Pong,
+    Message,
+    Close
+}
 
 fn main() {
     let yaml = load_yaml!("wurl-tools.yml");
     let matches = App::from_yaml(yaml).get_matches();
 
-    let ping = value_t_or_exit!(matches, "print", String);
-    let pong = value_t_or_exit!(matches, "pong", String);
-    let message = value_t_or_exit!(matches, "message", String);
-    let close = value_t_or_exit!(matches, "close", String);
-    //let headers = values_t!(matches, "headers", String).unwrap_or(Vec::new());
-    //let method = value_t!(matches, "method", Method).unwrap_or(Method::Get);
-    //let print_headers = matches.is_present("head");
-    /*
-    let mut data = value_t!(matches, "data", String).ok();
+    let pings = values_t!(matches, "ping", Instruction);
+    //let pongs = values_t!(matches, "pong", Instruction);
+    //let messages = values_t!(matches, "message", Instruction);
+    //let closes = values_t!(matches, "close", Instruction);
 
-    // Read stdin when given --data -
-    if let Some(read_data) = data.clone() {
-        if read_data == "-" {
-            let mut buffer = String::new();
-            let stdin = stdin();
-            let mut handle = stdin.lock();
-            handle.read_to_string(&mut buffer).ok();
-            data = Some(buffer);
-        }
-    }
+    println!("pung: {:?}", pings);
 
-    let request = build_request(url, method, headers, data);
+    let pool = ScheduledThreadPool::with_name("wurl-tools {}", 1);
 
-    match fetch(request, print_headers) {
-        Ok(mut response) => {
-            if print_headers {
-                eprintln!("Authentication response");
-                eprintln!("---");
-                eprintln!("{} {}", response.version(), response.status());
-                eprintln!("{}", response.headers());
-            }
+    if let Ok(instructions) = pings {
+        println!("inst: {:?}", instructions);
 
-            let cookies = response
-                .headers_mut()
-                .get::<SetCookie>()
-                .unwrap_or_else(|| {
-                    eprintln!("No Set-Cookie header present");
-                    exit(1);
-                });
-
-            let mut cookie_values = Vec::new();
-            for cookie in cookies.iter() {
-                // Get only key=value part of cookie, not the metadata
-                let split = cookie.split(';').collect::<Vec<&str>>();
-                if let Some(header) = split.first() {
-                    cookie_values.push(header.clone());
+        for instruction in instructions.iter() {
+            println!("inst: {:?}", instruction);
+            match instruction.command() {
+                Command::DELAY => {
+                    if let Some(message) = instruction.message() {
+                        let cloned = message.clone();
+                        pool.execute_after(*instruction.duration(), move || {
+                            println!("/ping {}", cloned);
+                        });
+                    } else {
+                        pool.execute_after(*instruction.duration(), || {
+                            println!("/ping");
+                        });
+                    }
+                }
+                Command::INTERVAL => {
+                    if let Some(message) = instruction.message() {
+                        let cloned = message.clone();
+                        pool.execute_at_fixed_rate(*instruction.duration(), *instruction.duration(), move || {
+                            println!("/ping {}", cloned);
+                        });
+                    } else {
+                        pool.execute_at_fixed_rate(*instruction.duration(), *instruction.duration(), || {
+                            println!("/ping");
+                        });
+                    }
                 }
             }
-
-            print!("Cookie: {}", cookie_values.join("; "));
         }
-        Err(error) => eprintln!("An error occured while fetching: {}", error),
     }
-    */
-}
 
+    loop {
+        sleep(Duration::from_secs(1));
+    }
+
+    //for thread in threads {
+    //    println!("Thread: {:?}", thread);
+    //    thread.join().expect("Failed to join ping thread");
+    //}
+}
