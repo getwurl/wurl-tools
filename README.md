@@ -61,4 +61,36 @@ INSTRUCTION:
 wurl-tools -p 'every 15s' | wurl wss://websocket.example.com
 ```
 
+## Install
+
+### [crates.io][crates.io]
+
+> NOT YET PUBLISHED
+
+    $ cargo install wurl-tools
+
+If you are a rust programmer, it is easy to install wurl using the cargo CLI.
+
+To update to a newer version, simply overwrite the old executable when
+installing.
+
+    $ cargo install --force wurl-tools
+
+### [binaries][binaries]
+
+All tagged releases on GitHub have compiled binaries attached to them.
+
+### [docker][docker]
+
+    $ docker run -it --rm esphen/wurl-tools
+
+If you do not have the rust toolchain installed and there is no package for your
+OS, you may use the docker image, which will run on all platforms that docker
+supports.
+
+If you use docker, it may be an idea to add an alias to make running it through
+docker easy. For example:
+
+    $ alias wurl="docker run -it --rm esphen/wurl-tools"
+
 [wurl]: https://github.com/getwurl/wurl
