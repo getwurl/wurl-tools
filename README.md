@@ -94,3 +94,7 @@ docker easy. For example:
     $ alias wurl="docker run -it --rm esphen/wurl-tools"
 
 [wurl]: https://github.com/getwurl/wurl
+[crates.io]: https://crates.io
+[binaries]: https://github.com/getwurl/wurl-tools/releases
+[docker]: https://store.docker.com/community/images/getwurl/wurl-tools
+
